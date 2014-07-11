@@ -1,4 +1,4 @@
-package jexe.core;
+package jexe;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -13,12 +13,12 @@ import jcifs.smb.SmbNamedPipe;
 
 public class JEXECore {
     
-    private static final HashMap<String, JEXEProcess> processMap = new HashMap<String, JEXEProcess>();
+    private static final HashMap<String, Process> processMap = new HashMap<String, Process>();
     
     private JEXECore() {
     }
     
-    public static JEXEProcess startProcess(ConnectionInfo connectionInfo, ProcessInfo processInfo)
+    public static Process startProcess(ConnectionInfo connectionInfo, ProcessInfo processInfo)
             throws IOException {
         StringBuilder processCommandBuilder = new StringBuilder();
         processCommandBuilder.append("exec ");
@@ -45,11 +45,11 @@ public class JEXECore {
                 connectionInfo.authentication.toNtlmPasswordAuthentication());
         
         PrintWriter writer = new PrintWriter(commandPipe.getNamedPipeOutputStream());
-        writer.print("COMMAND " + command + "\n");
-        writer.flush();
-        
         BufferedReader reader = new BufferedReader(new InputStreamReader(
                 commandPipe.getNamedPipeInputStream()));
+        
+        writer.print("COMMAND " + command + "\n");
+        writer.flush();
         
         String response = reader.readLine();
         
@@ -78,6 +78,10 @@ public class JEXECore {
         return response;
     }
     
+    public static void start(ConnectionInfo connectionInfo) {
+        
+    }
+    
     public static class ProcessInfo {
         
         public String id;
@@ -100,15 +104,36 @@ public class JEXECore {
         public String username;
         public String password;
         
-        public NtlmPasswordAuthentication toNtlmPasswordAuthentication() {
+        private NtlmPasswordAuthentication toNtlmPasswordAuthentication() {
             return new NtlmPasswordAuthentication(this.domain, this.username, this.password);
         }
         
     }
     
-    public static class CommandException extends Exception {
+    public static class Process {
         
-        private static final long serialVersionUID = -2761148477357758374L;
+        private Process() {
+        }
+        
+    }
+    
+    public static class JEXEException extends Exception {
+        
+        private static final long serialVersionUID = 2675859985742351255L;
+        
+        public JEXEException(String message) {
+            super(message);
+        }
+        
+        public JEXEException(String message, Throwable cause) {
+            super(message, cause);
+        }
+        
+    }
+    
+    public static class CommandException extends JEXEException {
+        
+        private static final long serialVersionUID = -5987625057248628173L;
         
         public CommandException(String message) {
             super(message);
