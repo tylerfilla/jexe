@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
-
 public class JEXE {
     
     public static void main(String[] args) {
@@ -32,8 +31,10 @@ public class JEXE {
         connectionInfo.authentication = authentication;
         
         try {
+            JEXECore.install(connectionInfo);
             System.out.println(JEXECore.transactCommand(connectionInfo, "exec notepad"));
-        } catch (JEXECore.CommandException | IOException e) {
+            JEXECore.uninstall(connectionInfo);
+        } catch (IOException | JEXECore.JEXEException e) {
             e.printStackTrace();
         }
     }

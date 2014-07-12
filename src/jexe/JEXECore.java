@@ -2,7 +2,9 @@ package jexe;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.HashMap;
 
@@ -13,35 +15,27 @@ import jcifs.smb.SmbNamedPipe;
 
 public class JEXECore {
     
+    private static final String pipeUrlBase = "/jexesvc";
+    private static final String pipeUrlCommand = pipeUrlBase + "/cmd";
+    private static final String pipeUrlProcessStdin = pipeUrlBase + "/stdin";
+    private static final String pipeUrlProcessStdout = pipeUrlBase + "/stdout";
+    private static final String pipeUrlProcessStderr = pipeUrlBase + "/stderr";
+    
     private static final HashMap<String, Process> processMap = new HashMap<String, Process>();
     
     private JEXECore() {
     }
     
-    public static Process startProcess(ConnectionInfo connectionInfo, ProcessInfo processInfo)
-            throws IOException {
-        StringBuilder processCommandBuilder = new StringBuilder();
-        processCommandBuilder.append("exec ");
-        processCommandBuilder.append("\"").append(processInfo.executable).append("\" ");
-        
-        if (processInfo.interactive) {
-            processCommandBuilder.append("i");
-        }
-        
-        String result = "";
-        try {
-            result = transactCommand(connectionInfo, processCommandBuilder.toString());
-        } catch (CommandException e) {
-            e.printStackTrace();
-        }
-        
-        return null;
+    public static void install(ConnectionInfo connectionInfo) throws IOException, JEXEException {
+    }
+    
+    public static void uninstall(ConnectionInfo connectionInfo) throws IOException, JEXEException {
     }
     
     public static String transactCommand(ConnectionInfo connectionInfo, String command)
-            throws CommandException, IOException {
+            throws IOException, JEXEException {
         SmbNamedPipe commandPipe = new SmbNamedPipe("smb://" + connectionInfo.hostname
-                + "/ipc$/pipe/jexesvc/cmd", SmbNamedPipe.PIPE_TYPE_RDWR,
+                + "/ipc$/pipe" + pipeUrlCommand, SmbNamedPipe.PIPE_TYPE_RDWR,
                 connectionInfo.authentication.toNtlmPasswordAuthentication());
         
         PrintWriter writer = new PrintWriter(commandPipe.getNamedPipeOutputStream());
@@ -53,23 +47,41 @@ public class JEXECore {
         
         String response = reader.readLine();
         
-        if (response.startsWith("ERROR ") && response.length() > 6) {
-            throw new CommandException("Response error: " + response.substring(6));
-        } else if (response.startsWith("RESPONSE ") && response.length() > 9) {
-            int numLines;
-            try {
-                numLines = Integer.parseInt(response.substring(9));
-            } catch (NumberFormatException e) {
-                throw new CommandException("Invalid response", e);
+        if (response.startsWith("RESPONSE")) {
+            if (response.length() > 9) {
+                int numLines;
+                try {
+                    numLines = Integer.parseInt(response.substring(9));
+                } catch (NumberFormatException e) {
+                    throw new CommandException("Protocol: invalid response line count", e);
+                }
+                
+                StringBuilder responseBuilder = new StringBuilder();
+                
+                for (int i = 0; i < numLines; i++) {
+                    String line = reader.readLine();
+                    
+                    if (!line.isEmpty()) {
+                        responseBuilder.append(reader.readLine());
+                        
+                        if (i < numLines - 1) {
+                            responseBuilder.append("\n");
+                        }
+                    }
+                }
+                
+                response = responseBuilder.toString();
+            } else {
+                throw new CommandException("Protocol: response line count not specified");
             }
-            
-            StringBuilder responseBuilder = new StringBuilder();
-            
-            for (int i = 0; i < numLines; i++) {
-                responseBuilder.append(reader.readLine()).append("\n");
+        } else if (response.startsWith("ERROR")) {
+            if (response.length() > 6) {
+                throw new CommandException("Response: " + response.substring(6));
+            } else {
+                throw new CommandException("Protocol: error code not specified");
             }
-            
-            response = responseBuilder.toString();
+        } else {
+            throw new CommandException("Protocol: unrecognized response");
         }
         
         writer.close();
@@ -78,17 +90,9 @@ public class JEXECore {
         return response;
     }
     
-    public static void start(ConnectionInfo connectionInfo) {
-        
-    }
-    
-    public static class ProcessInfo {
-        
-        public String id;
-        public String executable;
-        public Authentication authentication;
-        public boolean interactive;
-        
+    public static Process execProcess(ConnectionInfo connectionInfo, ProcessInfo processInfo)
+            throws IOException, JEXEException {
+        return null;
     }
     
     public static class ConnectionInfo {
@@ -110,9 +114,68 @@ public class JEXECore {
         
     }
     
+    public static class ProcessInfo {
+        
+        public static final byte REDIRECT_STDIN = 0x1;
+        public static final byte REDIRECT_STDOUT = 0x2;
+        public static final byte REDIRECT_STDERR = 0x4;
+        
+        public String command;
+        public byte redirectFlags;
+        
+    }
+    
     public static class Process {
         
+        private String processId;
+        private ProcessInfo processInfo;
+        
+        private ConnectionInfo connectionInfo;
+        
+        private InputStream stdin;
+        private OutputStream stdout;
+        private InputStream stderr;
+        
         private Process() {
+        }
+        
+        public void kill() throws IOException, JEXEException {
+        }
+        
+        public InputStream getInputStream() throws IOException, JEXEException {
+            if (this.stdin == null) {
+                this.stdin = new SmbNamedPipe("smb://" + this.connectionInfo.hostname
+                        + "/ipc$/pipe" + pipeUrlProcessStdin + "/" + this.processId,
+                        SmbNamedPipe.PIPE_TYPE_RDONLY,
+                        this.connectionInfo.authentication.toNtlmPasswordAuthentication())
+                        .getNamedPipeInputStream();
+            }
+            
+            return this.stdin;
+        }
+        
+        public OutputStream getOutputStream() throws IOException, JEXEException {
+            if (this.stdout == null) {
+                this.stdout = new SmbNamedPipe("smb://" + this.connectionInfo.hostname
+                        + "/ipc$/pipe" + pipeUrlProcessStdout + "/" + this.processId,
+                        SmbNamedPipe.PIPE_TYPE_WRONLY,
+                        this.connectionInfo.authentication.toNtlmPasswordAuthentication())
+                        .getNamedPipeOutputStream();
+            }
+            
+            return this.stdout;
+        }
+        
+        public InputStream getErrorStream() throws IOException, JEXEException {
+            if (this.stderr == null) {
+                this.stderr = new SmbNamedPipe("smb://" + this.connectionInfo.hostname
+                        + "/ipc$/pipe" + pipeUrlProcessStderr + "/" + this.processId,
+                        SmbNamedPipe.PIPE_TYPE_RDONLY,
+                        this.connectionInfo.authentication.toNtlmPasswordAuthentication())
+                        .getNamedPipeInputStream();
+            }
+            
+            return this.stderr;
         }
         
     }
