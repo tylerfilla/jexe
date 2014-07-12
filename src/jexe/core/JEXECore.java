@@ -1,4 +1,4 @@
-package jexe;
+package jexe.core;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -6,7 +6,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.util.HashMap;
 
 import jcifs.dcerpc.DcerpcBinding;
 import jcifs.dcerpc.msrpc.svcctl;
@@ -20,8 +19,6 @@ public class JEXECore {
     private static final String pipeUrlProcessStdin = pipeUrlBase + "/stdin";
     private static final String pipeUrlProcessStdout = pipeUrlBase + "/stdout";
     private static final String pipeUrlProcessStderr = pipeUrlBase + "/stderr";
-    
-    private static final HashMap<String, Process> processMap = new HashMap<String, Process>();
     
     private JEXECore() {
     }

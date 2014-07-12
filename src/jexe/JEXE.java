@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
+import jexe.core.JEXECore;
+
 public class JEXE {
     
     public static void main(String[] args) {
