@@ -31,9 +31,10 @@ public class JEXECore {
     /**
      * 
      * Installs and starts JEXESVC, a relatively small Win32 service that acts on the commands sent
-     * by JEXE operations, to the machine specified by the given ConnectionInfo object. The machine
-     * must have admin shares and file sharing enabled. JEXESVC must be installed on a given machine
-     * before commands may be transacted, and by extension, before processes may be manipulated.
+     * by JEXE operations, to the machine specified by the given {@link ConnectionInfo} object. The
+     * machine must have admin shares and file sharing enabled. JEXESVC must be installed on a given
+     * machine before commands may be transacted, and by extension, before processes may be
+     * manipulated.
      * 
      * @param connectionInfo
      *            Information specifying a connection to the target machine
@@ -49,12 +50,12 @@ public class JEXECore {
     
     /**
      * 
-     * Stops and uninstalls JEXESVC from the machine specified by the given ConnectionInfo object.
-     * JEXESVC must be installed for remote interactions to occur. Once interactions are complete,
-     * however, it may be appropriate to remove JEXESVC from the target machine, depending on the
-     * circumstances. The advantage to uninstalling JEXESVC is that the system is left in the
-     * condition in which it existed before the remote operations. The disadvantage is that JEXESVC
-     * must be reinstalled for future operations, which may take some time.
+     * Stops and uninstalls JEXESVC from the machine specified by the given {@link ConnectionInfo}
+     * object. JEXESVC must be installed for remote interactions to occur. Once interactions are
+     * complete, however, it may be appropriate to remove JEXESVC from the target machine, depending
+     * on the circumstances. The advantage to uninstalling JEXESVC is that the system is left in the
+     * condition in which it existed before the remote operations took place. The disadvantage is
+     * that JEXESVC must be reinstalled for future operations, which may take some time.
      * 
      * @param connectionInfo
      *            Information specifying a connection to the target machine
@@ -70,10 +71,8 @@ public class JEXECore {
     
     /**
      * 
-     * Checks for the presence of JEXESVC on the machine specified by the given ConnectionInfo
-     * object. If this method returns false, remote operations should fail. The
-     * {@link #transactCommand(ConnectionInfo, String)} method calls this method internally to
-     * determine whether or not a corresponding {@link JEXEException} should be thrown.
+     * Checks for the presence of JEXESVC on the machine specified by the given
+     * {@link ConnectionInfo} object. If this method returns false, remote operations should fail.
      * 
      * @param connectionInfo
      *            Information specifying a connection to the target machine
@@ -96,7 +95,8 @@ public class JEXECore {
     /**
      * 
      * Performs a command transaction; that is, sends the given command to the JEXESVC instance on
-     * the machine specified by the given ConnectionInfo object, and returns the result received.
+     * the machine specified by the given {@link ConnectionInfo} object, and returns the result
+     * received.
      * 
      * @param connectionInfo
      *            Information specifying a connection to the target machine

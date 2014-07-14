@@ -18,8 +18,8 @@ public class JEXEProcess {
     
     /**
      * 
-     * Attempts to execute the process described by the given ProcessInfo object on the machine
-     * specified by the given ConnectionInfo object.
+     * Attempts to execute the process described by the given {@link ProcessInfo} object on the
+     * machine specified by the given {@link ConnectionInfo} object.
      * 
      * @param connectionInfo
      *            Information specifying a connection to the target machine
