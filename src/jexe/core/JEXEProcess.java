@@ -1,6 +1,7 @@
 package jexe.core;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Map;
 
 import jexe.core.JEXECore.Authentication;
@@ -60,14 +61,113 @@ public class JEXEProcess {
         }
     }
     
-    public static QueryInfoProcess[] queryProcesses(ConnectionInfo connectionInfo,
-            QueryInfoProcess queryInfoProcess) {
-        return null;
+    /**
+     * 
+     * Runs a process query on the target machine with the given parameters.
+     * 
+     * @param connectionInfo
+     *            Information specifying a connection to the target machine
+     * @param processQueryInfo
+     *            Criteria for the query
+     * @return An array of ProcessQueryInfo objects specifying the query results
+     * @throws IOException
+     * @throws JEXEException
+     * 
+     */
+    public static ProcessQueryInfo[] queryProcesses(ConnectionInfo connectionInfo,
+            ProcessQueryInfo processQueryInfo) throws IOException, JEXEException {
+        HashSet<ProcessQueryInfo> resultSet = new HashSet<ProcessQueryInfo>();
+        
+        String rawQuery = JEXECore.transactCommand(connectionInfo, "query processes");
+        
+        for (String processInfoLine : rawQuery.split("\n")) {
+            Map<String, String> processInfoMap = JEXECore.stringToMap(processInfoLine);
+            
+            if (processQueryInfo.pid > 0) {
+                if (processQueryInfo.pid != Integer.parseInt(processInfoMap.get("pid"))) {
+                    continue;
+                }
+            }
+            
+            if (processQueryInfo.name != null) {
+                if (!processQueryInfo.name.equalsIgnoreCase(processInfoMap.get("name"))) {
+                    continue;
+                }
+            }
+            
+            if (processQueryInfo.path != null) {
+                if (!processQueryInfo.path.equalsIgnoreCase(processInfoMap.get("path"))) {
+                    continue;
+                }
+            }
+            
+            if (processQueryInfo.domain != null) {
+                if (!processQueryInfo.domain.equalsIgnoreCase(processInfoMap.get("domain"))) {
+                    continue;
+                }
+            }
+            
+            if (processQueryInfo.user != null) {
+                if (!processQueryInfo.user.equalsIgnoreCase(processInfoMap.get("user"))) {
+                    continue;
+                }
+            }
+            
+            ProcessQueryInfo completeInfo = new ProcessQueryInfo();
+            completeInfo.pid = Integer.parseInt(processInfoMap.get("pid"));
+            completeInfo.name = processInfoMap.get("name");
+            completeInfo.path = processInfoMap.get("path");
+            completeInfo.domain = processInfoMap.get("domain");
+            completeInfo.user = processInfoMap.get("user");
+            
+            resultSet.add(completeInfo);
+        }
+        
+        return resultSet.toArray(new ProcessQueryInfo[resultSet.size()]);
     }
     
-    public static QueryInfoWindow[] queryWindows(ConnectionInfo connectionInfo,
-            QueryInfoWindow queryInfoWindow) {
-        return null;
+    /**
+     * 
+     * Runs a window query on the target machine with the given parameters.
+     * 
+     * @param connectionInfo
+     *            Information specifying a connection to the target machine
+     * @param windowQueryInfo
+     *            Criteria for the query
+     * @return An array of WindowQueryInfo objects specifying the query results
+     * @throws IOException
+     * @throws JEXEException
+     * 
+     */
+    public static WindowQueryInfo[] queryWindows(ConnectionInfo connectionInfo,
+            WindowQueryInfo windowQueryInfo) throws IOException, JEXEException {
+        HashSet<WindowQueryInfo> resultSet = new HashSet<WindowQueryInfo>();
+        
+        String rawQuery = JEXECore.transactCommand(connectionInfo, "query windows");
+        
+        for (String windowInfoLine : rawQuery.split("\n")) {
+            Map<String, String> windowInfoMap = JEXECore.stringToMap(windowInfoLine);
+            
+            if (windowQueryInfo.title != null) {
+                if (!windowQueryInfo.title.equalsIgnoreCase(windowInfoMap.get("title"))) {
+                    continue;
+                }
+            }
+            
+            if (windowQueryInfo.pid > 0) {
+                if (windowQueryInfo.pid != Integer.parseInt(windowInfoMap.get("pid"))) {
+                    continue;
+                }
+            }
+            
+            WindowQueryInfo completeInfo = new WindowQueryInfo();
+            completeInfo.title = windowInfoMap.get("title");
+            completeInfo.pid = Integer.parseInt(windowInfoMap.get("pid"));
+            
+            resultSet.add(completeInfo);
+        }
+        
+        return resultSet.toArray(new WindowQueryInfo[resultSet.size()]);
     }
     
     /**
@@ -139,7 +239,7 @@ public class JEXEProcess {
         
     }
     
-    public static class QueryInfoProcess {
+    public static class ProcessQueryInfo {
         
         public int pid;
         public String name;
@@ -149,10 +249,10 @@ public class JEXEProcess {
         
     }
     
-    public static class QueryInfoWindow {
+    public static class WindowQueryInfo {
         
         public String title;
-        public int parentProcessPID;
+        public int pid;
         
     }
     

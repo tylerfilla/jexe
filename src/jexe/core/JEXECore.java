@@ -127,7 +127,7 @@ public class JEXECore {
         
         String response = reader.readLine();
         
-        if (response.startsWith("RESPONSE")) {
+        if (response.startsWith("RESPONSE ")) {
             if (response.length() > 9) {
                 int numLines;
                 try {
@@ -154,7 +154,7 @@ public class JEXECore {
             } else {
                 throw new CommandException("Protocol: response line count not specified");
             }
-        } else if (response.startsWith("ERROR")) {
+        } else if (response.startsWith("ERROR ")) {
             if (response.length() > 6) {
                 throw new CommandException("Response: " + response.substring(6));
             } else {
@@ -292,7 +292,15 @@ public class JEXECore {
      */
     public static class ConnectionInfo {
         
+        /**
+         * The hostname of the device to which to connect.
+         */
         public String hostname;
+        
+        /**
+         * An {@link Authentication} object used for connection to the device. This does not affect
+         * processes; process authentication is handled in {@link JEXEProcess}.
+         */
         public Authentication authentication;
         
     }
@@ -302,14 +310,25 @@ public class JEXECore {
      */
     public static class Authentication {
         
+        /**
+         * This field is optional, but may be required.
+         */
         public String domain;
+        
+        /**
+         * The username with which to authenticate.
+         */
         public String username;
+        
+        /**
+         * The password with which to authenticate.
+         */
         public String password;
         
         /**
          * 
          * Returns a JCIFS {@link NtlmPasswordAuthentication} object representing the same
-         * credentials stored in this Authentication. This method has a default
+         * credentials stored in this Authentication.
          * 
          * @return The NtlmPasswordAuthentication object
          * 
