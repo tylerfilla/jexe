@@ -3,8 +3,10 @@ package jexe;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.HashMap;
 
 import jexe.core.JEXECore;
+import jexe.core.JEXEProcess;
 
 public class JEXE {
     
@@ -32,9 +34,30 @@ public class JEXE {
         connectionInfo.hostname = "TYLER-LAPTOP";
         connectionInfo.authentication = authentication;
         
+        JEXEProcess.ProcessCreationInfo processInfo = new JEXEProcess.ProcessCreationInfo();
+        processInfo.authentication = authentication;
+        processInfo.startingDirectory = "C:\\Users\\Tyler";
+        processInfo.environmentVariables = new HashMap<String, String>();
+        processInfo.environmentVariables.put("key1", "value1");
+        processInfo.environmentVariables.put("key2", "value2");
+        processInfo.environmentVariables.put("key3", "value3");
+        processInfo.redirectFlags = JEXEProcess.ProcessCreationInfo.REDIRECT_STDOUT;
+        processInfo.command = "notepad.exe C:\\Users\\Tyler\\.gitconfig";
+        
         try {
             JEXECore.install(connectionInfo);
-            System.out.println(JEXECore.transactCommand(connectionInfo, "exec notepad"));
+            
+            JEXEProcess.QueryInfoProcess query = new JEXEProcess.QueryInfoProcess();
+            query.name = "notepad.exe";
+            query.user = "Tyler";
+            
+            JEXEProcess.QueryInfoProcess[] results = JEXEProcess.queryProcesses(connectionInfo,
+                    query);
+            
+            for (JEXEProcess.QueryInfoProcess result : results) {
+                JEXEProcess.kill(connectionInfo, result.pid, 0);
+            }
+            
             JEXECore.uninstall(connectionInfo);
         } catch (IOException | JEXECore.JEXEException e) {
             e.printStackTrace();
