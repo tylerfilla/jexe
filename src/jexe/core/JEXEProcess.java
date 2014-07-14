@@ -63,6 +63,77 @@ public class JEXEProcess {
     
     /**
      * 
+     * Runs a process query on the target machine and kills the results. This is a convenience
+     * method comprised of a {@link #queryProcesses(ConnectionInfo, ProcessQueryInfo)} call and a
+     * loop calling {@link #kill(ConnectionInfo, int, int)} on the returned PIDs.
+     * {@link JEXEException}s produced by the latter call are caught internally; therefore, if a
+     * single kill operation fails with a minor error, the loop continues. IOExceptions are uncaught
+     * and will propagate, however.
+     * 
+     * @param connectionInfo
+     *            Information specifying a connection to the target machine
+     * @param processQueryInfo
+     *            Criteria for the query
+     * @param exitCode
+     *            The exit code with which the processes should exit
+     * @return Whether or not all matched processes were killed
+     * @throws IOException
+     * @throws JEXEException
+     * 
+     */
+    public static boolean killByQuery(ConnectionInfo connectionInfo,
+            ProcessQueryInfo processQueryInfo, int exitCode) throws IOException, JEXEException {
+        boolean result = true;
+        
+        for (ProcessQueryInfo process : queryProcesses(connectionInfo, processQueryInfo)) {
+            try {
+                kill(connectionInfo, process.pid, exitCode);
+            } catch (JEXEException e) {
+                result = false;
+                continue;
+            }
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 
+     * Runs a window query on the target machine and kills the results. This is a convenience method
+     * comprised of a {@link #queryWindows(ConnectionInfo, WindowQueryInfo)} call and a loop calling
+     * {@link #kill(ConnectionInfo, int, int)} on the returned PIDs. {@link JEXEException}s produced
+     * by the latter call are caught internally; therefore, if a single kill operation fails with a
+     * minor error, the loop continues. IOExceptions are uncaught and will propagate, however.
+     * 
+     * @param connectionInfo
+     *            Information specifying a connection to the target machine
+     * @param windowQueryInfo
+     *            Criteria for the query
+     * @param exitCode
+     *            The exit code with which the processes should exit
+     * @return Whether or not all matched processes were killed
+     * @throws IOException
+     * @throws JEXEException
+     * 
+     */
+    public static boolean killByQuery(ConnectionInfo connectionInfo,
+            WindowQueryInfo windowQueryInfo, int exitCode) throws IOException, JEXEException {
+        boolean result = true;
+        
+        for (WindowQueryInfo window : queryWindows(connectionInfo, windowQueryInfo)) {
+            try {
+                kill(connectionInfo, window.pid, exitCode);
+            } catch (JEXEException e) {
+                result = false;
+                continue;
+            }
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 
      * Runs a process query on the target machine with the given parameters.
      * 
      * @param connectionInfo
