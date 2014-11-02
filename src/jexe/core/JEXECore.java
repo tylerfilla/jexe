@@ -82,7 +82,7 @@ public class JEXECore {
      */
     public static boolean checkInstall(ConnectionInfo connectionInfo) {
         try {
-            new SmbNamedPipe("smb://" + connectionInfo.hostname + "/ipc$/pipe" + pipeUrlCommand,
+            new SmbNamedPipe("smb://" + connectionInfo.address + "/ipc$/pipe" + pipeUrlCommand,
                     SmbNamedPipe.PIPE_TYPE_RDWR,
                     connectionInfo.authentication.toNtlmPasswordAuthentication());
         } catch (IOException e) {
@@ -111,7 +111,7 @@ public class JEXECore {
             throws IOException, JEXEException {
         SmbNamedPipe commandPipe;
         try {
-            commandPipe = new SmbNamedPipe("smb://" + connectionInfo.hostname + "/ipc$/pipe"
+            commandPipe = new SmbNamedPipe("smb://" + connectionInfo.address + "/ipc$/pipe"
                     + pipeUrlCommand, SmbNamedPipe.PIPE_TYPE_RDWR,
                     connectionInfo.authentication.toNtlmPasswordAuthentication());
         } catch (IOException e) {
@@ -172,7 +172,7 @@ public class JEXECore {
     
     /**
      * 
-     * Converts a Map&lt;String, String&gt; to a JEXESVC map.
+     * Converts a <code>Map&lt;String, String&gt;</code> to a JEXESVC map.
      * 
      * @param map
      *            The Map<String, String> to convert
@@ -220,7 +220,7 @@ public class JEXECore {
     
     /**
      * 
-     * Converts a JEXESVC map to a Map&lt;String, String&gt;.
+     * Converts a JEXESVC map to a <code>Map&lt;String, String&gt;</code>.
      * 
      * @param string
      *            The JEXESVC map to convert
@@ -293,9 +293,9 @@ public class JEXECore {
     public static class ConnectionInfo {
         
         /**
-         * The hostname of the device to which to connect.
+         * The hostname/address of the device to which to connect.
          */
-        public String hostname;
+        public String address;
         
         /**
          * An {@link Authentication} object used for connection to the device. This does not affect
@@ -311,7 +311,7 @@ public class JEXECore {
     public static class Authentication {
         
         /**
-         * This field is optional, but may be required.
+         * The domain under which to authenticate; not necessary in all cases.
          */
         public String domain;
         
@@ -327,8 +327,8 @@ public class JEXECore {
         
         /**
          * 
-         * Returns a JCIFS {@link NtlmPasswordAuthentication} object representing the same
-         * credentials stored in this Authentication.
+         * Returns a JCIFS {@link NtlmPasswordAuthentication} object representing the same set of
+         * credentials.
          * 
          * @return The NtlmPasswordAuthentication object
          * 

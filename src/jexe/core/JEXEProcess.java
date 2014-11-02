@@ -9,7 +9,7 @@ import jexe.core.JEXECore.ConnectionInfo;
 import jexe.core.JEXECore.JEXEException;
 
 /**
- * Supplements JEXECore with process manipulation facilities.
+ * Supplements JEXECore with process manipulation capabilities.
  */
 public class JEXEProcess {
     
@@ -18,8 +18,8 @@ public class JEXEProcess {
     
     /**
      * 
-     * Attempts to execute the process described by the given {@link ProcessInfo} object on the
-     * machine specified by the given {@link ConnectionInfo} object.
+     * Attempts to execute the process described by the given {@link ProcessCreationInfo} object on
+     * the machine specified by the given {@link ConnectionInfo} object.
      * 
      * @param connectionInfo
      *            Information specifying a connection to the target machine
@@ -61,184 +61,104 @@ public class JEXEProcess {
         }
     }
     
-    /**
-     * 
-     * Runs a process query on the target machine and kills the results. This is a convenience
-     * method comprised of a {@link #queryProcesses(ConnectionInfo, ProcessQueryInfo)} call and a
-     * loop calling {@link #kill(ConnectionInfo, int, int)} on the returned PIDs.
-     * {@link JEXEException}s produced by the latter call are caught internally; therefore, if a
-     * single kill operation fails with a minor error, the loop continues. IOExceptions are uncaught
-     * and will propagate, however.
-     * 
-     * @param connectionInfo
-     *            Information specifying a connection to the target machine
-     * @param processQueryInfo
-     *            Criteria for the query
-     * @param exitCode
-     *            The exit code with which the processes should exit
-     * @return Whether or not all matched processes were killed
-     * @throws IOException
-     * @throws JEXEException
-     * 
-     */
-    public static boolean killByQuery(ConnectionInfo connectionInfo,
-            ProcessQueryInfo processQueryInfo, int exitCode) throws IOException, JEXEException {
+    public static boolean killByQuery(ConnectionInfo connectionInfo, QueryInfo queryInfo,
+            int exitCode) throws IOException, JEXEException {
         boolean result = true;
         
-        for (ProcessQueryInfo process : queryProcesses(connectionInfo, processQueryInfo)) {
+        for (QueryInfo query : JEXEProcess.query(connectionInfo, queryInfo)) {
             try {
-                kill(connectionInfo, process.pid, exitCode);
+                JEXEProcess.kill(connectionInfo, query.pid, exitCode);
             } catch (JEXEException e) {
+                e.printStackTrace();
                 result = false;
-                continue;
             }
         }
         
         return result;
     }
     
-    /**
-     * 
-     * Runs a window query on the target machine and kills the results. This is a convenience method
-     * comprised of a {@link #queryWindows(ConnectionInfo, WindowQueryInfo)} call and a loop calling
-     * {@link #kill(ConnectionInfo, int, int)} on the returned PIDs. {@link JEXEException}s produced
-     * by the latter call are caught internally; therefore, if a single kill operation fails with a
-     * minor error, the loop continues. IOExceptions are uncaught and will propagate, however.
-     * 
-     * @param connectionInfo
-     *            Information specifying a connection to the target machine
-     * @param windowQueryInfo
-     *            Criteria for the query
-     * @param exitCode
-     *            The exit code with which the processes should exit
-     * @return Whether or not all matched processes were killed
-     * @throws IOException
-     * @throws JEXEException
-     * 
-     */
-    public static boolean killByQuery(ConnectionInfo connectionInfo,
-            WindowQueryInfo windowQueryInfo, int exitCode) throws IOException, JEXEException {
-        boolean result = true;
-        
-        for (WindowQueryInfo window : queryWindows(connectionInfo, windowQueryInfo)) {
-            try {
-                kill(connectionInfo, window.pid, exitCode);
-            } catch (JEXEException e) {
-                result = false;
-                continue;
+    public static QueryInfo[] query(ConnectionInfo connectionInfo, QueryInfo queryInfo)
+            throws IOException, JEXEException {
+        if (queryInfo instanceof ProcessQueryInfo) {
+            ProcessQueryInfo processQueryInfo = (ProcessQueryInfo) queryInfo;
+            HashSet<ProcessQueryInfo> resultSet = new HashSet<ProcessQueryInfo>();
+            String rawQuery = JEXECore.transactCommand(connectionInfo, "query processes");
+            
+            for (String processInfoLine : rawQuery.split("\n")) {
+                Map<String, String> processInfoMap = JEXECore.stringToMap(processInfoLine);
+                
+                if (processQueryInfo.pid > 0) {
+                    if (processQueryInfo.pid != Integer.parseInt(processInfoMap.get("pid"))) {
+                        continue;
+                    }
+                }
+                
+                if (processQueryInfo.name != null) {
+                    if (!processQueryInfo.name.equalsIgnoreCase(processInfoMap.get("name"))) {
+                        continue;
+                    }
+                }
+                
+                if (processQueryInfo.path != null) {
+                    if (!processQueryInfo.path.equalsIgnoreCase(processInfoMap.get("path"))) {
+                        continue;
+                    }
+                }
+                
+                if (processQueryInfo.domain != null) {
+                    if (!processQueryInfo.domain.equalsIgnoreCase(processInfoMap.get("domain"))) {
+                        continue;
+                    }
+                }
+                
+                if (processQueryInfo.user != null) {
+                    if (!processQueryInfo.user.equalsIgnoreCase(processInfoMap.get("user"))) {
+                        continue;
+                    }
+                }
+                
+                ProcessQueryInfo completeInfo = new ProcessQueryInfo();
+                completeInfo.pid = Integer.parseInt(processInfoMap.get("pid"));
+                completeInfo.name = processInfoMap.get("name");
+                completeInfo.path = processInfoMap.get("path");
+                completeInfo.domain = processInfoMap.get("domain");
+                completeInfo.user = processInfoMap.get("user");
+                
+                resultSet.add(completeInfo);
             }
+            
+            return resultSet.toArray(new ProcessQueryInfo[resultSet.size()]);
+        } else if (queryInfo instanceof WindowQueryInfo) {
+            WindowQueryInfo windowQueryInfo = (WindowQueryInfo) queryInfo;
+            HashSet<WindowQueryInfo> resultSet = new HashSet<WindowQueryInfo>();
+            String rawQuery = JEXECore.transactCommand(connectionInfo, "query windows");
+            
+            for (String windowInfoLine : rawQuery.split("\n")) {
+                Map<String, String> windowInfoMap = JEXECore.stringToMap(windowInfoLine);
+                
+                if (windowQueryInfo.title != null) {
+                    if (!windowQueryInfo.title.equalsIgnoreCase(windowInfoMap.get("title"))) {
+                        continue;
+                    }
+                }
+                
+                if (windowQueryInfo.pid > 0) {
+                    if (windowQueryInfo.pid != Integer.parseInt(windowInfoMap.get("pid"))) {
+                        continue;
+                    }
+                }
+                
+                WindowQueryInfo completeInfo = new WindowQueryInfo();
+                completeInfo.title = windowInfoMap.get("title");
+                completeInfo.pid = Integer.parseInt(windowInfoMap.get("pid"));
+                
+                resultSet.add(completeInfo);
+            }
+            
+            return resultSet.toArray(new WindowQueryInfo[resultSet.size()]);
         }
         
-        return result;
-    }
-    
-    /**
-     * 
-     * Runs a process query on the target machine with the given parameters.
-     * 
-     * @param connectionInfo
-     *            Information specifying a connection to the target machine
-     * @param processQueryInfo
-     *            Criteria for the query
-     * @return An array of ProcessQueryInfo objects specifying the query results
-     * @throws IOException
-     * @throws JEXEException
-     * 
-     */
-    public static ProcessQueryInfo[] queryProcesses(ConnectionInfo connectionInfo,
-            ProcessQueryInfo processQueryInfo) throws IOException, JEXEException {
-        HashSet<ProcessQueryInfo> resultSet = new HashSet<ProcessQueryInfo>();
-        
-        String rawQuery = JEXECore.transactCommand(connectionInfo, "query processes");
-        
-        for (String processInfoLine : rawQuery.split("\n")) {
-            Map<String, String> processInfoMap = JEXECore.stringToMap(processInfoLine);
-            
-            if (processQueryInfo.pid > 0) {
-                if (processQueryInfo.pid != Integer.parseInt(processInfoMap.get("pid"))) {
-                    continue;
-                }
-            }
-            
-            if (processQueryInfo.name != null) {
-                if (!processQueryInfo.name.equalsIgnoreCase(processInfoMap.get("name"))) {
-                    continue;
-                }
-            }
-            
-            if (processQueryInfo.path != null) {
-                if (!processQueryInfo.path.equalsIgnoreCase(processInfoMap.get("path"))) {
-                    continue;
-                }
-            }
-            
-            if (processQueryInfo.domain != null) {
-                if (!processQueryInfo.domain.equalsIgnoreCase(processInfoMap.get("domain"))) {
-                    continue;
-                }
-            }
-            
-            if (processQueryInfo.user != null) {
-                if (!processQueryInfo.user.equalsIgnoreCase(processInfoMap.get("user"))) {
-                    continue;
-                }
-            }
-            
-            ProcessQueryInfo completeInfo = new ProcessQueryInfo();
-            completeInfo.pid = Integer.parseInt(processInfoMap.get("pid"));
-            completeInfo.name = processInfoMap.get("name");
-            completeInfo.path = processInfoMap.get("path");
-            completeInfo.domain = processInfoMap.get("domain");
-            completeInfo.user = processInfoMap.get("user");
-            
-            resultSet.add(completeInfo);
-        }
-        
-        return resultSet.toArray(new ProcessQueryInfo[resultSet.size()]);
-    }
-    
-    /**
-     * 
-     * Runs a window query on the target machine with the given parameters.
-     * 
-     * @param connectionInfo
-     *            Information specifying a connection to the target machine
-     * @param windowQueryInfo
-     *            Criteria for the query
-     * @return An array of WindowQueryInfo objects specifying the query results
-     * @throws IOException
-     * @throws JEXEException
-     * 
-     */
-    public static WindowQueryInfo[] queryWindows(ConnectionInfo connectionInfo,
-            WindowQueryInfo windowQueryInfo) throws IOException, JEXEException {
-        HashSet<WindowQueryInfo> resultSet = new HashSet<WindowQueryInfo>();
-        
-        String rawQuery = JEXECore.transactCommand(connectionInfo, "query windows");
-        
-        for (String windowInfoLine : rawQuery.split("\n")) {
-            Map<String, String> windowInfoMap = JEXECore.stringToMap(windowInfoLine);
-            
-            if (windowQueryInfo.title != null) {
-                if (!windowQueryInfo.title.equalsIgnoreCase(windowInfoMap.get("title"))) {
-                    continue;
-                }
-            }
-            
-            if (windowQueryInfo.pid > 0) {
-                if (windowQueryInfo.pid != Integer.parseInt(windowInfoMap.get("pid"))) {
-                    continue;
-                }
-            }
-            
-            WindowQueryInfo completeInfo = new WindowQueryInfo();
-            completeInfo.title = windowInfoMap.get("title");
-            completeInfo.pid = Integer.parseInt(windowInfoMap.get("pid"));
-            
-            resultSet.add(completeInfo);
-        }
-        
-        return resultSet.toArray(new WindowQueryInfo[resultSet.size()]);
+        return null;
     }
     
     /**
@@ -310,9 +230,14 @@ public class JEXEProcess {
         
     }
     
-    public static class ProcessQueryInfo {
+    public static abstract class QueryInfo {
         
         public int pid;
+        
+    }
+    
+    public static class ProcessQueryInfo extends QueryInfo {
+        
         public String name;
         public String path;
         public String domain;
@@ -320,10 +245,9 @@ public class JEXEProcess {
         
     }
     
-    public static class WindowQueryInfo {
+    public static class WindowQueryInfo extends QueryInfo {
         
         public String title;
-        public int pid;
         
     }
     
